@@ -1,0 +1,31 @@
+# REVIEW.md
+
+This review refers to the supplied starter `app/main.py`, before the replacement implementation in this repository.
+
+| # | Where | Defect | How to notice it | Fix applied in this implementation |
+|---|---|---|---|---|
+| 1 | `compute_late_minutes` | Treats the supplied datetime's wall clock as the shift's timezone and anchors the shift start to the same calendar date. This fails when the datetime is UTC/naive or an overnight punch-in belongs to the previous shift date. | Test an overnight shift and the same instant represented in UTC. | Normalize instants to UTC, derive the shift boundary in IST, and account for overnight shifts. |
+| 2 | `compute_late_minutes` | Does not truncate the punch instant to whole seconds before calculating the grace boundary. | Test 09:40:00.999 against a 09:30 shift. | Truncate instants to whole seconds before calculations and storage. |
+| 3 | `compute_work_hours` | Uses Python `round`, which uses ties-to-even rather than the required decimal half-up rounding. | Test values on a half-cent rounding boundary. | Use `Decimal` with `ROUND_HALF_UP`. |
+| 4 | `compute_overtime` | Does not enforce the 30-minute minimum and constructs shift end on the same date, which is wrong for overnight shifts. | Test 20 minutes after shift end and a shift ending after midnight. | Derive shift end from the punch-in's shift date and return overtime only at 30 minutes or more. |
+| 5 | `MongoClient` setup | Uses PyMongo's default naive datetime behaviour without a consistent UTC boundary policy. | Compare timestamps on a non-UTC machine or seeded UTC BSON dates. | Configure timezone-aware UTC reads and explicit conversions at the API boundary. |
+| 6 | `health` | Always returns `{"status":"ok"}` without checking MongoDB. | Stop or disconnect MongoDB and call `/health`. | Ping MongoDB and return 503 when it is unavailable. |
+| 7 | `create_employee` | The pre-insert duplicate lookup is a check-then-insert race; concurrent requests can both pass. No startup unique index enforces the business key. | Send concurrent creates with the same `emp_code`. | Create a unique `employees.emp_code` index and translate `DuplicateKeyError` to 409. |
+| 8 | `EmployeeIn` | Accepts malformed employee codes, emails, dates and shift times, including equal shift boundaries. | Submit invalid values to `POST /employees`. | Validate formats, actual calendar dates and differing shift times; reject undeclared fields. |
+| 9 | `create_employee` | Uses naive `datetime.now()` for `created_at`, and returns a datetime instead of epoch milliseconds. | Inspect the stored BSON timestamp and HTTP response. | Store UTC and serialize `created_at` as integer epoch milliseconds. |
+| 10 | `list_employees` | Computes `skip` as `page * page_size`, so page 1 skips the first page; `total` ignores the department filter; results are not sorted. Pagination bounds are not validated. | Request page 1, filter by department, and compare `total` with matching records. | Use `(page - 1) * page_size`, count the filtered query, sort by `emp_code`, and bound pagination. |
+| 11 | `punch_in` | An unknown employee is dereferenced before a 404 can be returned. The truthiness check treats `punched_at=0` as omitted; timestamps use local-time conversion and are not validated/truncated. | Punch in an unknown code or send invalid timestamp types. | Return 404, validate strict epoch milliseconds, convert explicitly from UTC and truncate to seconds. |
+| 12 | `punch_in` | A prior lookup followed by insert is not concurrency-safe; status is an unrestricted string; response exposes an `id` derived from MongoDB `_id`. | Send parallel punch-ins or submit `ABSENT` / an invalid status. | Enforce allowed statuses, use the unique `(emp_code, date)` index, return 409 on duplicate, and never expose `_id`. |
+| 13 | `list_attendance` | Loads every matching document into Python, sorts and paginates in memory, and omits a deterministic `emp_code` tie-breaker. It also leaks MongoDB identifiers/datetimes and does not validate date ranges or page bounds. | Exercise reversed dates and a large collection; inspect response fields. | Filter, count, sort, skip and limit in MongoDB; validate inputs and serialize API records without `_id`. |
+| 14 | `explain_endpoint` | Serializes BSON `Timestamp` objects (from MongoDB cluster/operation timestamps) via `json_util.loads()`, causing FastAPI `jsonable_encoder` to raise 500 (`Timestamp object is not iterable`). | Call `/admin/explain/attendance_list` against live MongoDB Atlas. | Use `json.loads(json_util.dumps(explain))` to guarantee standard serializable JSON primitives. |
+| 15 | `punch_out` | Candidate record query included `{"punch_in": {"$lte": out_at}}`, returning 404 when `punched_at <= punch_in` and bypassing the intended 422 validation. | Submit a punch-out instant earlier than or equal to punch-in. | Remove `"$lte": out_at` from candidate lookup so time ordering logic evaluates and returns 422. |
+| 16 | Analytics Pipelines | `{"$dateFromString": {"dateString": "$date", "timezone": "Asia/Kolkata"}}` shifted calendar strings to previous-day 18:30 UTC, causing `$dayOfWeek` in UTC to misclassify Monday as weekend (1) and Saturday as weekday (6). | Run `employee_monthly` and `departments/summary` across a month with weekend and Monday logs. | Evaluate date strings directly with `{"$dayOfWeek": {"date": {"$dateFromString": {"dateString": "$date"}}}}` to accurately map Monday-Friday to `[2, 3, 4, 5, 6]`. |
+| 17 | `employee_monthly` | Looked up employee in DB before checking month parameter format, returning 404 for unknown employees instead of 422 for malformed month strings. | Submit an invalid month format like `2026-13`. | Validate `month_bounds(month)` at route entry before executing collection lookups. |
+
+## Checked and retained
+
+- `emp_code` is the business identifier; MongoDB `_id` must remain internal.
+- Calendar dates (`date`, `joined_on`) are strings, while instants are BSON UTC dates internally and epoch milliseconds in API responses.
+- The unique attendance key is `(emp_code, date)`, not an ObjectId.
+- Missing legacy `history` and `half_day` values mean `[]` and `false` respectively.
+- The `history` array is for manual regularizations only; punch-in and punch-out must not append audit entries.
