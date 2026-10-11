@@ -297,7 +297,7 @@ def create_employee(body: EmployeeIn):
 
 @app.get("/employees")
 def list_employees(department: Optional[str] = None,
-                   page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100)):
+                   page: int = Query(1, ge=1, le=100000), page_size: int = Query(20, ge=1, le=100)):
     q = {"department": department} if department is not None else {}
     total = db.employees.count_documents(q)
     docs = list(db.employees.find(q, {"_id": 0}).sort("emp_code", ASCENDING).skip((page-1)*page_size).limit(page_size))
@@ -329,7 +329,7 @@ def punch_in(body: PunchInIn):
 @app.get("/attendance")
 def list_attendance(emp_code: Optional[str] = None, date_from: Optional[str] = None,
                     date_to: Optional[str] = None, status: Optional[str] = None,
-                    page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100)):
+                    page: int = Query(1, ge=1, le=100000), page_size: int = Query(20, ge=1, le=100)):
     if status is not None and status not in STATUSES:
         raise HTTPException(422, "invalid status")
     if date_from:
@@ -591,7 +591,7 @@ def department_trend(department: str, from_: str = Query(..., alias="from"), to:
 def explain_endpoint(endpoint: str, emp_code: Optional[str] = None, month: Optional[str] = None,
                      department: Optional[str] = None, limit: int = Query(10, ge=1, le=50),
                      date_from: Optional[str] = None, date_to: Optional[str] = None,
-                     status: Optional[str] = None, page: int = Query(1, ge=1),
+                     status: Optional[str] = None, page: int = Query(1, ge=1, le=100000),
                      page_size: int = Query(20, ge=1, le=100),
                      from_: Optional[str] = Query(None, alias="from"), to: Optional[str] = None):
     allowed = {"attendance_list", "employee_monthly", "department_summary", "late_leaderboard", "department_trend"}

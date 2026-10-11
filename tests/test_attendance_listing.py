@@ -82,5 +82,7 @@ def test_list_attendance_invalid_filters(test_client):
     assert test_client.get("/attendance", params={"status": "VACATION"}).status_code == 422
     # Pagination bounds
     assert test_client.get("/attendance", params={"page": 0}).status_code == 422
+    assert test_client.get("/attendance", params={"page": 100001}).status_code == 422
+    assert test_client.get("/attendance", params={"page": 6703743605062011702589576445952}).status_code == 422
     assert test_client.get("/attendance", params={"page_size": 0}).status_code == 422
     assert test_client.get("/attendance", params={"page_size": 101}).status_code == 422

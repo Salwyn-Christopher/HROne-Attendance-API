@@ -177,5 +177,7 @@ def test_list_employees_pagination_and_filter(test_client):
 
     # Check bounds validation
     assert test_client.get("/employees", params={"page": 0}).status_code == 422
+    assert test_client.get("/employees", params={"page": 100001}).status_code == 422
+    assert test_client.get("/employees", params={"page": 6703743605062011702589576445952}).status_code == 422
     assert test_client.get("/employees", params={"page_size": 0}).status_code == 422
     assert test_client.get("/employees", params={"page_size": 101}).status_code == 422
