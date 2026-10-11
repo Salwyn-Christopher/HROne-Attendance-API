@@ -1,40 +1,83 @@
 # Employee Attendance & Analytics API
 
-FastAPI + MongoDB implementation for the HROne Software Engineer Trainee assignment.
+A REST API built with **Python, FastAPI, and MongoDB** for employee management, attendance tracking, manual attendance corrections, and workforce analytics.
 
-## Run locally
+<p>
+  <img src="https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white" alt="Python" />
+  <img src="https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/MongoDB-47A248?logo=mongodb&logoColor=white" alt="MongoDB" />
+  <img src="https://img.shields.io/badge/Tests-76%20passed-success" alt="Last recorded test result" />
+</p>
 
-Requirements: Python 3.11+ and MongoDB 6.0+.
+## Features
+
+- Employee creation, validation, filtering, and pagination
+- Attendance punch-in and punch-out
+- Shift rules, grace periods, and work-hour calculations
+- Manual attendance regularization and audit trail
+- Monthly attendance analytics and department summaries
+- Late-arrival leaderboard and department trends
+- Health checks and query explain endpoints
+
+## Tech Stack
+
+- **Backend:** Python, FastAPI
+- **Database:** MongoDB, PyMongo
+- **Testing:** pytest
+- **API documentation:** OpenAPI, Swagger UI
+
+## Getting Started
+
+**1. Clone the repository**
 
 ```bash
+git clone https://github.com/Salwyn-Christopher/HROne-Attendance-API.git
+cd HROne-Attendance-API
+```
+
+**2. Create a virtual environment and install dependencies**
+
+Windows PowerShell:
+
+```powershell
 python -m venv .venv
-# Windows: .venv\Scripts\activate
-# macOS/Linux: source .venv/bin/activate
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
-Copy `.env.example` to `.env` and fill in your own MongoDB Atlas connection string and database name, or set the same variables in your shell. The application loads `.env` for local development; real environment variables take precedence. Never commit `.env`. The recommended disposable development database is `hrone_attendance_test`.
+**3. Configure MongoDB**
 
-Then run:
+Use `.env.example` as your configuration reference. Set the environment variables required by the application using your own local credentials. Never commit `.env` or secrets.
 
-```bash
-uvicorn app.main:app --port 8000
-```
-
-The application creates its indexes at startup. Open `http://localhost:8000/docs` to inspect the API. `GET /health` should return `{"status":"ok"}` only when MongoDB is reachable.
-
-Do not commit `.env`, secrets, virtual environments, sample data dumps, the assignment statement, or a Dockerfile.
-
-## Run automated tests
-
-The regression suite runs against a dedicated test database (`hrone_attendance_pytest`) and cleans up its data automatically.
+**4. Run the API**
 
 ```bash
-pytest -v
+python -m uvicorn app.main:app --reload --port 8000
 ```
 
-All 76 contract, validation, concurrency, and analytics tests pass against MongoDB 6.0+ (verified on MongoDB 8.0).
+Open **http://127.0.0.1:8000/docs** to explore and test the API.
 
-## Submission status
+## Run Tests
 
-Verified and submission-ready. The complete API contract, edge cases, race conditions (employee duplication, concurrent punch-in, concurrent punch-out, and regularization compare-and-swap), and aggregation pipelines have been audited and tested. All 76 tests pass cleanly. Explain plans for all supported endpoints have been verified.
+```bash
+python -m pytest -v
+```
+
+Last recorded result: **76 passed, 3 warnings**. Rerun the tests after any code changes.
+
+## Project Documentation
+
+- [`REVIEW.md`](REVIEW.md) — Code review findings
+- [`DECISIONS.md`](DECISIONS.md) — Design decisions
+- [`app/main.py`](app/main.py) — API implementation
+- [`tests/`](tests/) — Automated tests
+
+## Screenshots
+
+*Add screenshots of the actual running application here.*
+
+Recommended: Swagger UI (`/docs`), a successful employee creation response, and an analytics response. Use fictional data and ensure no credentials or personal information are visible.
+
+---
+
+**Project context:** Software Engineer Trainee assignment. Refer to the API implementation and tests for supported behavior.
